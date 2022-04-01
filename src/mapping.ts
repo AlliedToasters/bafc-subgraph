@@ -7,83 +7,16 @@ import {
   TaxOfficeTransferred,
   Transfer
 } from "../generated/vape/vape"
-import { ExampleEntity } from "../generated/schema"
+import { VapeHolder, VapeBurn } from "../generated/schema"
+
+let nullAddress = "0x0000000000000000000000000000000000000000"
+let burnV1Address = "0xa4dc0764d304ae0e4a694749cc40245427a08a1e"
+let burnV2Address = "0x67b93e51633e6c19d6bd09f19a68e684f5a94dfb"
+let burnV1StartBlock = new BigInt(14490012)
+let burnV2StartBlock = new BigInt(14502650)
 
 export function handleApproval(event: Approval): void {
-  // Entities can be loaded from the store using a string ID; this ID
-  // needs to be unique across all entities of the same type
-  let entity = ExampleEntity.load(event.transaction.from.toHex())
-
-  // Entities only exist after they have been saved to the store;
-  // `null` checks allow to create entities on demand
-  if (!entity) {
-    entity = new ExampleEntity(event.transaction.from.toHex())
-
-    // Entity fields can be set using simple assignments
-    entity.count = BigInt.fromI32(0)
-  }
-
-  // BigInt and BigDecimal math are supported
-  entity.count = entity.count + BigInt.fromI32(1)
-
-  // Entity fields can be set based on event parameters
-  entity.owner = event.params.owner
-  entity.spender = event.params.spender
-
-  // Entities can be written to the store with `.save()`
-  entity.save()
-
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
-
-  // It is also possible to access smart contracts from mappings. For
-  // example, the contract that has emitted the event can be connected to
-  // with:
-  //
-  // let contract = Contract.bind(event.address)
-  //
-  // The following functions can then be called on this contract to access
-  // state variables and other data:
-  //
-  // - contract.INITIAL_AIRDROP_WALLET_DISTRIBUTION(...)
-  // - contract.INITIAL_GENESIS_POOL_DISTRIBUTION(...)
-  // - contract.INITIAL_VAPE_POOL_DISTRIBUTION(...)
-  // - contract.allowance(...)
-  // - contract.approve(...)
-  // - contract.autoCalculateTax(...)
-  // - contract.balanceOf(...)
-  // - contract.burnThreshold(...)
-  // - contract.decimals(...)
-  // - contract.decreaseAllowance(...)
-  // - contract.excludeAddress(...)
-  // - contract.excludedAddresses(...)
-  // - contract.getTaxTiersRatesCount(...)
-  // - contract.getTaxTiersTwapsCount(...)
-  // - contract.includeAddress(...)
-  // - contract.increaseAllowance(...)
-  // - contract.isAddressExcluded(...)
-  // - contract.isOperator(...)
-  // - contract.mint(...)
-  // - contract.name(...)
-  // - contract.operator(...)
-  // - contract.owner(...)
-  // - contract.rewardPoolDistributed(...)
-  // - contract.setBurnThreshold(...)
-  // - contract.setTaxTiersRate(...)
-  // - contract.setTaxTiersTwap(...)
-  // - contract.symbol(...)
-  // - contract.taxCollectorAddress(...)
-  // - contract.taxOffice(...)
-  // - contract.taxRate(...)
-  // - contract.taxTiersRates(...)
-  // - contract.taxTiersTwaps(...)
-  // - contract.totalSupply(...)
-  // - contract.transfer(...)
-  // - contract.transferFrom(...)
-  // - contract.vapeOracle(...)
+  
 }
 
 export function handleOperatorTransferred(event: OperatorTransferred): void {}
@@ -92,4 +25,41 @@ export function handleOwnershipTransferred(event: OwnershipTransferred): void {}
 
 export function handleTaxOfficeTransferred(event: TaxOfficeTransferred): void {}
 
-export function handleTransfer(event: Transfer): void {}
+export function handleTransfer(event: Transfer): void {
+
+  // let fromAccount = VapeHolder.load(event.params.from.toHex())
+  // if (fromAccount == null) {
+  //   fromAccount = new VapeHolder(event.params.from.toHex())
+  // }
+
+  // let toAccount = VapeHolder.load(event.params.to.toHex())
+  // if (fromAccount == null) {
+  //   toAccount = new VapeHolder(event.params.to.toHex())
+  // }
+
+  let isNullBurn = (event.params.to.toHex() == nullAddress)
+  let isBurnV1 = ((event.params.to.toHex() == burnV1Address) && (event.block.number >= burnV1StartBlock) && (event.block.number <= burnV2StartBlock))
+  let isBurnV2 = ((event.params.to.toHex() == burnV2Address) && (event.block.number > burnV2StartBlock))
+
+  if (isNullBurn || isBurnV1 || isBurnV2) {
+    let burn = new VapeBurn(event.transaction.hash.toHex() + '_' + event.params.to.toHex())
+    let holder = VapeHolder.load(event.params.from.toHex())
+    if (holder == null) {
+      holder = new VapeHolder(event.params.from.toHex())
+      holder.totalBurned = new BigInt(0)
+    }
+    burn.burner = event.params.from.toHex()
+    burn.amount = event.params.value
+    holder.totalBurned = holder.totalBurned.plus(event.params.value)
+    burn.blockHeight = event.block.number
+    burn.timestamp = event.block.timestamp
+    burn.transactionId = event.transaction.hash.toHexString()
+    burn.to = event.params.to.toHex()
+
+    burn.save()
+    holder.save()
+  }
+
+
+
+}

@@ -1,6 +1,15 @@
-type ExampleEntity @entity {
+type VapeHolder @entity {
   id: ID!
-  count: BigInt!
-  owner: Bytes! # address
-  spender: Bytes! # address
+  burns: [VapeBurn!]! @derivedFrom(field: "burner")
+  totalBurned: BigInt!
+}
+
+type VapeBurn @entity {
+  id: ID!
+  burner: VapeHolder!
+  to: String!
+  amount: BigInt!
+  blockHeight: BigInt!
+  timestamp: BigInt
+  transactionId: String!
 }

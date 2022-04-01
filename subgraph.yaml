@@ -1,4 +1,4 @@
-specVersion: 0.0.1
+specVersion: 0.0.2
 schema:
   file: ./schema.graphql
 dataSources:
@@ -8,6 +8,9 @@ dataSources:
     source:
       address: "0x917B78b76CA7fD68e9B6E4b1EBFCb13Cc0FB4650"
       abi: vape
+      #startBlock: 14464950
+      #startBlock: 14484055
+      startBlock: 14490000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.5
